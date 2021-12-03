@@ -1,6 +1,6 @@
 // self defined library import area
 #include "./library/retro2.h"
-#include "./library/wreckralph2.h"
+#include "./library/wreakralph2.h"
 #include "./library/rickroll.h"
 #include "./library/mario2.h"
 
@@ -29,6 +29,12 @@ uint32_t color_seq[3] = {
     strip.Color(0,   0,150)   // blue
     };  // color sequence for LED strip
 int color_seq_len = sizeof(color_seq)/4;  // each color is 4bytes(32bits)
+
+struct RGB {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+};
 
 void setup() {
   Serial.begin(9600);
@@ -308,8 +314,8 @@ void soundControlWipe() {
 }
 
 void loop() {
-	display_text();
-  // retro(id);
+	// display_text();
+  // retro(0);
     // id = 0 for display_BombJack(); 
     // id = 1 for display_Qbert();  
     // id = 2 for display_DigDug(); 
