@@ -1,6 +1,8 @@
 // self defined library import area
 #include "./library/retro.h"
 #include "./library/wreckralph.h"
+#include "./library/rickroll.h"
+#include "./library/mario.h"
 
 // Arduino library import area
 #include <Adafruit_GFX.h>
@@ -32,13 +34,23 @@ void setup() {
   Serial.begin(9600);
 	matrix.begin();
 	matrix.setTextWrap(false);
-	matrix.setBrightness(40);
+	matrix.setBrightness(16);
 	matrix.setTextSize(1);
 	matrix.setTextColor(matrix_colors[0]);
   strip.begin();           // INITIALIZE NeoPixel strip object
   strip.show();            // Turn OFF all pixels
   strip.setBrightness(5); // Set BRIGHTNESS of all pixels(max = 255)
   pinMode(SOUND_PIN,INPUT);  // initialize sound sensor pin
+}
+
+struct RGB colorConverter(int hexValue)
+{
+  struct RGB rgbColor;
+  rgbColor.r = ((hexValue >> 16) & 0xFF);  // Extract the RR byte
+  rgbColor.g = ((hexValue >> 8) & 0xFF);   // Extract the GG byte
+  rgbColor.b = ((hexValue) & 0xFF);        // Extract the BB byte
+
+  return rgbColor;
 }
 
 
@@ -63,18 +75,39 @@ void display_text() {
 
 byte FrameNumber = 0;
 void wreckralph() {
+  FrameNumber = 0;
   Chrono chrono;
 	while(1){
 		if (chrono.hasPassed(72)) {
 			chrono.restart();
-			TimerEvent();
+			TimerEventRalph();
+  	}
+	}
+}
+void mario() {
+  FrameNumber = 0;
+  Chrono chrono;
+	while(1){
+		if (chrono.hasPassed(72)) {
+			chrono.restart();
+			TimerEventMario();
+  	}
+	}
+}
+void rickroll() {
+  FrameNumber = 0;
+  Chrono chrono;
+	while(1){
+		if (chrono.hasPassed(72)) {
+			chrono.restart();
+			TimerEventRickRoll();
   	}
 	}
 }
 uint16_t drawRGB24toRGB565(byte r, byte g, byte b) {
   return ((r / 8) << 11) | ((g / 4) << 5) | (b / 8);
 }
-void TimerEvent() {
+void TimerEventRalph() {
   if (FrameNumber == 0) {
       for (byte y = 0; y < 16; y++) {
         for (byte x = 0; x < 16; x++) {
@@ -116,6 +149,201 @@ void TimerEvent() {
   }
   matrix.show();
 }
+
+void TimerEventMario() {
+  if (FrameNumber == 0) {
+      for (byte y = 0; y < 16; y++) {
+        for (byte x = 0; x < 16; x++) {
+          byte loc = x + y*16;
+          matrix.drawPixel(x, y, drawRGB24toRGB565((marioNewRedFrame0[loc]), (marioNewGreenFrame0[loc]), (marioNewBlueFrame0[loc])));
+        }
+      }
+      FrameNumber = 1;
+      Serial.println(" Frame 0 completed");
+  }
+   else if (FrameNumber == 1) {
+      for (byte y = 0; y < 16; y++) {
+        for (byte x = 0; x < 16; x++) {
+          byte loc = x + y*16;
+          matrix.drawPixel(x, y, drawRGB24toRGB565((marioNewRedFrame1[loc]), (marioNewGreenFrame1[loc]), (marioNewBlueFrame1[loc])));
+        }
+      }
+      FrameNumber = 2;
+      Serial.println(" Frame 1 completed");
+  }
+   else if (FrameNumber == 2) {
+      for (byte y = 0; y < 16; y++) {
+        for (byte x = 0; x < 16; x++) {
+          byte loc = x + y*16;
+          matrix.drawPixel(x, y, drawRGB24toRGB565((marioNewRedFrame2[loc]), (marioNewGreenFrame2[loc]), (marioNewBlueFrame2[loc])));
+        }
+      }
+      FrameNumber = 0;
+  }
+  matrix.show();
+}
+
+void TimerEventRickRoll() {
+  for (byte y = 0; y < 16; y++) {
+    for (byte x = 0; x < 16; x++) {
+      byte loc = x + y * 16;
+      matrix.drawPixel(x, y, drawRGB24toRGB565((rickrollFrames[3 * FrameNumber][loc]), (rickrollFrames[3 * FrameNumber + 1][loc]), (rickrollFrames[3 * FrameNumber + 2][loc])));
+    }
+  }
+  if(FrameNumber == 26){
+    FrameNumber = 0;  
+  }
+  else{
+    FrameNumber += 1;  
+  }
+  Serial.println(" Frame completed");
+  matrix.show();
+}
+
+void display_retro_character(int character_id) {
+  if(character_id == 1){
+    display_DigDug();  
+  }
+  else if(character_id == 2){
+    display_Qbert();  
+  }
+  else if(character_id == 3){
+    display_BombJack();  
+  }
+}
+
+void display_DigDug(){
+  matrix.clear();
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      if (i % 2 == 0) {
+        struct RGB c = colorConverter(pgm_read_dword(&(DigDug01[16 * i + 15 - j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+      else {
+        struct RGB c = colorConverter(pgm_read_dword(&(DigDug01[16 * i + j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+    }
+  }
+
+  matrix.show();
+  delay(500);
+
+  // Put DigDug second frame
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      if (i % 2 == 0) {
+        struct RGB c = colorConverter(pgm_read_dword(&(DigDug02[16 * i + 15 - j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+      else {
+        struct RGB c = colorConverter(pgm_read_dword(&(DigDug02[16 * i + j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+    }
+  }
+
+  matrix.show();
+  delay(500);  
+}
+
+void display_BombJack() {
+  matrix.clear();
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      if (i % 2 == 0) {
+        struct RGB c = colorConverter(pgm_read_dword(&(BombJack01[16 * i + 15 - j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+      else {
+        struct RGB c = colorConverter(pgm_read_dword(&(BombJack01[16 * i + j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+    }
+  }
+
+  matrix.show();
+  delay(500);
+
+  // Put BombJack second frame
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      if (i % 2 == 0) {
+        struct RGB c = colorConverter(pgm_read_dword(&(BombJack02[16 * i + 15 - j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+      else {
+        struct RGB c = colorConverter(pgm_read_dword(&(BombJack02[16 * i + j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+    }
+  }
+
+  matrix.show();
+  delay(500);
+}
+
+void display_Qbert() {
+  matrix.clear();
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      if (i % 2 == 0) {
+        struct RGB c = colorConverter(pgm_read_dword(&(Qbert01[16 * i + 15 - j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+      else {
+        struct RGB c = colorConverter(pgm_read_dword(&(Qbert01[16 * i + j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+    }
+  }
+
+  matrix.show();
+  delay(500);
+
+  // Put Qbert second frame
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      if (i % 2 == 0) {
+        struct RGB c = colorConverter(pgm_read_dword(&(Qbert02[16 * i + 15 - j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+      else {
+        struct RGB c = colorConverter(pgm_read_dword(&(Qbert02[16 * i + j])));
+        uint16_t c_u = matrix.Color(c.r, c.g, c.b);
+        Serial.println(c.r);
+        matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
+      }
+    }
+  }
+
+  matrix.show();
+  delay(500);
+}
+
 
 // Global Variables for helper functions
 
@@ -235,6 +463,9 @@ void soundControlWipe() {
 
 void loop() {
 	display_text();
+  // display_retro_character(number 1, 2, or 3);
+  // mario();
+  // rickroll();
   // wreckralph();
   // colorWipe();
   // colorSeg();
