@@ -14,13 +14,13 @@
 #ifndef PSTR
  #define PSTR // Make Arduino Due happy
 #endif
-#define PIN 14
+#define MATRIX_PIN 14
 #define LED_PIN     12
 #define LED_COUNT   144
 #define SOUND_PIN   15
 
 // Master Global Variable Area
-Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16,16, PIN, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16,16, MATRIX_PIN, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 const uint16_t matrix_colors[] = {matrix.Color(150, 0, 0), matrix.Color(0, 150, 0), matrix.Color(0, 0, 150) };
 uint32_t color_seq[3] = {
@@ -299,7 +299,6 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
-
 
 void soundControlWipe() {
   int val = analogRead(SOUND_PIN);
