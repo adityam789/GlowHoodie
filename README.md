@@ -14,8 +14,9 @@ UMass CICS 256 Final Project
 7. time()
 8. temperature()
 9. wreckralph()
-10. matrio()
+10. mario()
 11. rickroll()
-12. bombjack()	(retro 0)
-13. qbert()		(retro 1)
-14. digdug()	(retro 2)
+12. colorswitchmatrix() to test
+13. bombjack()	(retro 0)
+14. qbert()		(retro 1)
+15. digdug()	(retro 2)

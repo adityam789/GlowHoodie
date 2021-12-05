@@ -3,7 +3,7 @@
 #include "./library/wreakralph2.h"
 #include "./library/rickroll.h"
 #include "./library/mario2.h"
-
+#include "./library/colorswitch.h"
 
 // Arduino library import area
 #include <Wire.h>
@@ -176,6 +176,8 @@ void clear_matrix() {
       matrix.drawPixel(x, y, matrix.Color(0, 0, 0));
     }
   }
+  matrix.show();
+  delay(100);
 }
 
 void clear_strip() {
@@ -365,6 +367,16 @@ void rickroll() {
     }
   }
 }
+void colorswitchmatrix() {
+  FrameNumber = 0;
+  Chrono chrono;
+  while(1){
+    if (chrono.hasPassed(72)) {
+      chrono.restart();
+      TimerEventColorSwitch();
+    }
+  }
+}
 void retro(int id) {
   FrameNumber = 0;
   Chrono chrono;
@@ -458,6 +470,22 @@ void TimerEventRetro(int character_id){
   FrameNumber = 1 - FrameNumber;
   matrix.show();
   //delay(500);
+}
+
+void TimerEventColorSwitch() {
+  z = FrameNumber;
+  for (byte y = 0; y < 16; y++) {
+    for (byte x = 0; x < 16; x++) {
+      matrix.drawPixel(x, y, drawRGB24toRGB565((colorswitchframes[3 * z]), (colorswitchframes[3 * z + 1]), (colorswitchframes[3 * z + 2])));
+    }
+  }
+  if(FrameNumber == 99) {
+    FrameNumber = 0;
+  } else {
+    FrameNumber++;
+  }
+  Serial.println("Frame completed");
+  matrix.show();
 }
 
 String getTemperature(){
