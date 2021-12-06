@@ -25,7 +25,7 @@
 
 #define MATRIX_PIN 14
 #define LED_PIN     12
-#define SOUND_PIN   15
+#define SOUND_PIN   32
 
 #define LED_COUNT   144
 #define SMODE_CNT   6         // the number of strip mode
@@ -107,7 +107,7 @@ void on_set() {
       Serial.println(modeNum);
       xSemaphoreGive(binsem1);
     }
-    if (modeNum <= SMODE_CNT && strip_mode != modeNum) {
+    if (modeNum < SMODE_CNT && strip_mode != modeNum) {
       if (strip_task != NULL) {     // if the strip is already running
         vTaskDelete( strip_task );
         clear_strip();        // always clear before switching
@@ -115,9 +115,9 @@ void on_set() {
       strip_mode = modeNum;
       xTaskCreatePinnedToCore(strip_light, "strip_light", 4096, NULL, 1, &strip_task, ARDUINO_RUNNING_CORE);
     } // change strip light scheme
-    if (modeNum > SMODE_CNT && matrix_mode != modeNum) {
+    if (modeNum >= SMODE_CNT && matrix_mode != modeNum) {
       if (matrix_task != NULL) {     // if the matrix is already running
-        vTaskDelete( strip_task );
+        vTaskDelete( matrix_task );
         clear_matrix();       // always clear before switching
       }
       matrix_mode = modeNum;
@@ -183,16 +183,16 @@ void clear_matrix() {
 void clear_strip() {
   for (int i = 0; i < strip.numPixels(); i++) { // For each pixel in strip...
     strip.setPixelColor(i, strip.Color(0, 0, 0));  //  Set pixel's color (in RAM)
-    strip.show();                          //  Update strip to match
-    delay(10);                           //  Pause for a moment
   }
+  strip.show();                          //  Update strip to match
+  delay(10);                           //  Pause for a moment
 }
 
 //led strip
 volatile unsigned long prev = 0;
 volatile unsigned long lastSound = 0;
 volatile int color_ind = 0;
-const int seg_len = 5;              // length of color segment (30 by default)
+const int seg_len = 30 ;              // length of color segment (30 by default)
 
 // Helper functions (mostly for animations)
 
@@ -329,7 +329,10 @@ void display_text(char* text, int cursor_point) {
     matrix.print(F(text));
     if(--x < -6*((int)strlen(text))) {
       x = matrix.width();
-      if(++pass >= 3) pass = 0;
+      if(++pass >= 3){
+        pass = 0;
+        // break;  
+      }
       matrix.setTextColor(matrix_colors[pass]);
     }
     matrix.show();
@@ -575,9 +578,9 @@ void matrix_animation(void *pvParameters) {
       rickroll();
     }else if (matrix_mode == 12) {
       bombjack();
-    }else if (matrix_mode == 12) {
+    }else if (matrix_mode == 13) {
       qbert();
-    }else if (matrix_mode == 12) {
+    }else if (matrix_mode == 14) {
       digdug();
     }
   }
