@@ -26,6 +26,8 @@
 #define MATRIX_PIN 14
 #define LED_PIN     12
 #define SOUND_PIN   32
+#define TRIG 5
+#define ECHO 16
 
 #define LED_COUNT   144
 #define SMODE_CNT   6         // the number of strip mode
@@ -59,11 +61,11 @@ volatile int matrix_mode = 0; // default to off mode
 byte FrameNumber = 0;     // frame number of matrix animation
 const char* mode_string = "<p style=\"font-size: 10em\">Arm Lighting Control</a><br>"\
                           "<a href=\"/set?value=0\">Off</a><br>"\
-                          "<a  href=\"/set?value=1\">Swipe</a><br>"\
+                          "<a  href=\"/set?value=1\">Wipe</a><br>"\
                           "<a  href=\"/set?value=2\">Rainbow</a><br>"\
                           "<a  href=\"/set?value=3\">Color Seg</a><br>"\
                           "<a  href=\"/set?value=4\">Color Bounce</a><br>"\
-                          "<a  href=\"/set?value=5\">Sound Control Swipe</a><br>"\
+                          "<a  href=\"/set?value=5\">Swipe Control Wipe</a><br>"\
               "<br><br><br><p style=\"font-size: 10em\">Matrix Control</a><br>"\
               "<a  href=\"/set?value=6\">Off</a><br>"\
               "<a  href=\"/set?value=7\">Display Time</a><br>"\
@@ -134,6 +136,10 @@ void setup(void) {
   lcd.begin(SSD1306_SWITCHCAPVCC, 0x3C); lcd.setTextColor(WHITE); lcd.clearDisplay();
   lcd.display();
   Serial.begin(9600);
+
+  pinMode(TRIG, OUTPUT); // set up distance sensor pins
+  pinMode(ECHO, INPUT);
+  digitalWrite(TRIG, LOW);
 
   WiFi.mode(WIFI_STA); // set ESP in AP mode
   WiFi.begin("george", "12345678"); // sets ssid and password
@@ -303,6 +309,34 @@ void soundControlWipe() {
   }
 }
 
+float readDistance() {
+  digitalWrite(TRIG, LOW); delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  unsigned long timeout=micros()+26233L;
+  while((digitalRead(ECHO)==LOW)&&(micros()<timeout));
+  unsigned long start_time = micros();
+  timeout=start_time+26233L;
+  while((digitalRead(ECHO)==HIGH)&&(micros()<timeout));
+  unsigned long lapse = micros() - start_time;
+  return lapse*0.01716f;
+}
+
+float prev_dist = 0;
+
+void swipeControlWipe(){
+  float dist = readDistance();
+  if (dist < 10.0 && prev_dist > 20.0) {
+    Serial.println("Swiped");
+    colorWipeHelper(color_seq[color_ind], 20);
+    color_ind += 1;
+    if (color_ind == color_seq_len) {
+      color_ind = 0;
+    }
+  }
+  prev_dist = dist;
+}
+
 void strip_light(void *pvParameters) {
   while (1) {
     if (strip_mode == 1) {
@@ -314,7 +348,7 @@ void strip_light(void *pvParameters) {
     } else if (strip_mode == 4) {
       colorBounce();
     } else if (strip_mode == 5) {
-      soundControlWipe();
+      swipeControlWipe();
     }
   }
 }
