@@ -477,7 +477,7 @@ void TimerEventRetro(int character_id){
 }
 
 void TimerEventColorSwitch() {
-  z = FrameNumber;
+  int z = FrameNumber;
   for (byte y = 0; y < 16; y++) {
     for (byte x = 0; x < 16; x++) {
       matrix.drawPixel(x, y, drawRGB24toRGB565((colorswitchframes[3 * z]), (colorswitchframes[3 * z + 1]), (colorswitchframes[3 * z + 2])));
