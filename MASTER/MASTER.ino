@@ -151,15 +151,15 @@ void setup(void) {
   lcd.clearDisplay(); lcd.setCursor(0,0); lcd.print("Connected.\nIP:");
   lcd.println(WiFi.localIP()); lcd.display(); // print out assigned IP address
   
-  String ps_ip_string = ipToString(WiFi.localIP());
-  ps_ip_string.toCharArray(ip_string, ps_ip_string.length());
-  Serial.println(ip_string);  // test printing ip address
-  xTaskCreatePinnedToCore(matrix_display_ip, "matrix display ip", 4096, NULL, 1, &ip_display, ARDUINO_RUNNING_CORE);
+//  String ps_ip_string = ipToString(WiFi.localIP());
+//  ps_ip_string.toCharArray(ip_string, ps_ip_string.length());
+//  Serial.println(ip_string);  // test printing ip address
+//  xTaskCreatePinnedToCore(matrix_display_ip, "matrix display ip", 4096, NULL, 1, &ip_display, ARDUINO_RUNNING_CORE);
 
   lcd.setCursor(0,30); lcd.println("Register mDNS..."); lcd.display();
   if (MDNS.begin(mdns_name)) {  // register mDNS name
     lcd.println("success."); lcd.print(mdns_name); lcd.print(".local/"); lcd.display();
-    vTaskDelete( matrix_task ); clear_matrix();
+//    vTaskDelete( matrix_task ); clear_matrix();
   } else { lcd.print("failed."); lcd.display(); }
 
   server.on("/", on_home);  // home callback function
