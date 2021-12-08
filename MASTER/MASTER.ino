@@ -59,24 +59,26 @@ volatile int modeNum = 0;
 volatile int strip_mode = 0;  // default to off mode
 volatile int matrix_mode = 0; // default to off mode
 byte FrameNumber = 0;     // frame number of matrix animation
-const char* mode_string = "<p style=\"font-size: 10em\">Arm Lighting Control</a><br>"\
-                          "<a href=\"/set?value=0\">Off</a><br>"\
-                          "<a  href=\"/set?value=1\">Wipe</a><br>"\
-                          "<a  href=\"/set?value=2\">Rainbow</a><br>"\
-                          "<a  href=\"/set?value=3\">Color Seg</a><br>"\
-                          "<a  href=\"/set?value=4\">Color Bounce</a><br>"\
-                          "<a  href=\"/set?value=5\">Swipe Control Wipe</a><br>"\
-              "<br><br><br><p style=\"font-size: 10em\">Matrix Control</a><br>"\
-              "<a  href=\"/set?value=6\">Off</a><br>"\
-              "<a  href=\"/set?value=7\">Display Time</a><br>"\
-              "<a  href=\"/set?value=8\">Display Temerature</a><br>"\
-              "<a  href=\"/set?value=9\">WreckRalph</a><br>"\
-              "<a  href=\"/set?value=10\">Mario</a><br>"\
-              "<a  href=\"/set?value=11\">Rick Roll</a><br>"\
-              "<a  href=\"/set?value=12\">Bomb Jack</a><br>"\
-              "<a  href=\"/set?value=13\">QBert</a><br>"\
-              "<a  href=\"/set?value=14\">Dig Dug</a><br>"\
-              "<a  href=\"/set?value=15\">Color Switch</a><br>";
+//const char* mode_string = "<p style=\"font-size: 10em\">Arm Lighting Control</a><br>"\
+//                          "<a href=\"/set?value=0\">Off</a><br>"\
+//                          "<a  href=\"/set?value=1\">Wipe</a><br>"\
+//                          "<a  href=\"/set?value=2\">Rainbow</a><br>"\
+//                          "<a  href=\"/set?value=3\">Color Seg</a><br>"\
+//                          "<a  href=\"/set?value=4\">Color Bounce</a><br>"\
+//                          "<a  href=\"/set?value=5\">Swipe Control Wipe</a><br>"\
+//              "<br><br><br><p style=\"font-size: 10em\">Matrix Control</a><br>"\
+//              "<a  href=\"/set?value=6\">Off</a><br>"\
+//              "<a  href=\"/set?value=7\">Display Time</a><br>"\
+//              "<a  href=\"/set?value=8\">Display Temerature</a><br>"\
+//              "<a  href=\"/set?value=9\">WreckRalph</a><br>"\
+//              "<a  href=\"/set?value=10\">Mario</a><br>"\
+//              "<a  href=\"/set?value=11\">Rick Roll</a><br>"\
+//              "<a  href=\"/set?value=12\">Bomb Jack</a><br>"\
+//              "<a  href=\"/set?value=13\">QBert</a><br>"\
+//              "<a  href=\"/set?value=14\">Dig Dug</a><br>"\
+//              "<a  href=\"/set?value=15\">Color Switch</a><br>";
+const char* mode_string = "<!DOCTYPE html><head><title>Glow Hoodie</title><style>body{background-color: black;}p{text-align: center;font-size: 5em;color: white;}li{display: inline-block;text-align: center;background-color: white;margin: 0px;margin-top: 50px;width: 90%;}li >a{display: block;color: black;font-size: 3em;text-decoration: none;padding: 50px 0px;}</style></head><body><p>Arm Lighting Control</p><ul><li><a href=\"/set?value=0\">Off</a></li><li><a href=\"/set?value=1\">Wipe</a></li><li><a href=\"/set?value=2\">Rainbow</a></li><li><a href=\"/set?value=3\">Color Seg</a></li><li><a href=\"/set?value=4\">Color Bounce</a></li><li><a href=\"/set?value=5\">Wipe Control Wipe</a></li></ul><p>Matrix Lighting Control</p><ul><li><a href=\"/set?value=6\">Off</a></li><li><a href=\"/set?value=7\">Display Time</a></li><li><a href=\"/set?value=8\">Display Temerature</a></li><li><a href=\"/set?value=9\">WreckRalph</a></li><li><a href=\"/set?value=10\">Mario</a></li><li><a href=\"/set?value=11\">Rick Roll</a></li><li><a href=\"/set?value=12\">Bomb Jack</a></li><li><a href=\"/set?value=13\">QBert</a></li><li><a href=\"/set?value=14\">Dig Dug</a></li><li><a href=\"/set?value=15\">Color Switch</a></li></ul></body></html>";
+
 Adafruit_SSD1306 lcd(128, 64);
 const char* mdns_name = "glowhoodie"; // mdns doesn't work on Android (mdns_name.local/)
 
