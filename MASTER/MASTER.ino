@@ -53,6 +53,7 @@ int color_seq_len = sizeof(color_seq) / 4; // each color is 4bytes(32bits)
 
 TaskHandle_t strip_task = NULL;    // neopixel strip task tracker
 TaskHandle_t matrix_task = NULL;  // matrix task tracker
+TaskHandle_t ip_display = NULL;  // ip display task tracker
 
 volatile SemaphoreHandle_t binsem1;
 volatile int modeNum = 0;
@@ -81,7 +82,7 @@ const char* mode_string = "<!DOCTYPE html><head><title>Glow Hoodie</title><style
 
 Adafruit_SSD1306 lcd(128, 64);
 const char* mdns_name = "glowhoodie"; // mdns doesn't work on Android (mdns_name.local/)
-
+char* ip_string = NULL;
 
 // Struct Declaration
 struct RGB {
@@ -149,9 +150,16 @@ void setup(void) {
   while(WiFi.status() != WL_CONNECTED) { delay(500); }
   lcd.clearDisplay(); lcd.setCursor(0,0); lcd.print("Connected.\nIP:");
   lcd.println(WiFi.localIP()); lcd.display(); // print out assigned IP address
+  
+  String ps_ip_string = ipToString(WiFi.localIP());
+  ps_ip_string.toCharArray(ip_string, ps_ip_string.length());
+  Serial.println(ip_string);  // test printing ip address
+  xTaskCreatePinnedToCore(matrix_display_ip, "matrix display ip", 4096, NULL, 1, &ip_display, ARDUINO_RUNNING_CORE);
+
   lcd.setCursor(0,30); lcd.println("Register mDNS..."); lcd.display();
   if (MDNS.begin(mdns_name)) {  // register mDNS name
     lcd.println("success."); lcd.print(mdns_name); lcd.print(".local/"); lcd.display();
+    vTaskDelete( matrix_task ); clear_matrix();
   } else { lcd.print("failed."); lcd.display(); }
 
   server.on("/", on_home);  // home callback function
@@ -599,6 +607,17 @@ void temperature() {
   temperature.toCharArray(curr_temperature, len);
   display_text(curr_temperature, 4);
   delay(1000);
+}
+
+String ipToString(IPAddress ip){
+  String s="";
+  for (int i=0; i<4; i++)
+    s += i  ? "." + String(ip[i]) : String(ip[i]);
+  return s;
+}
+
+void matrix_display_ip(void *pvParameters) {
+  display_text(ip_string, 4);
 }
 
 void matrix_animation(void *pvParameters) {
