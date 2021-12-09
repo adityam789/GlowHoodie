@@ -23,14 +23,17 @@
  #define PSTR // Make Arduino Due happy
 #endif
 
-#define MATRIX_PIN 14
-#define LED_PIN     12
-#define SOUND_PIN   32
-#define TRIG 5
-#define ECHO 16
+#define MATRIX_PIN  14      // chest matrix pin
+#define LED_PIN     12      // arm strip pin
+#define SOUND_PIN   32      // sound sensor pin
+#define TRIG        5       // ultrasound trigger pin
+#define ECHO        16      // ultrasound echo pin
+#define HP_PIN      27      // heating pad NMOS pin (*gate(white), drain+(gray), source-(black, need to GND))
 
-#define LED_COUNT   144
-#define SMODE_CNT   6         // the number of strip mode
+#define LED_COUNT           144 // self explainatory
+#define SMODE_CNT           6   // the number of strip mode
+#define MMODE_CNT           10  // the number of matrix mode
+#define LOW_TEMP_THRESHOLD  40  // 40 degree fahreheit
 
 #if CONFIG_FREERTOS_UNICORE
 #define ARDUINO_RUNNING_CORE 0
@@ -53,12 +56,14 @@ int color_seq_len = sizeof(color_seq) / 4; // each color is 4bytes(32bits)
 
 TaskHandle_t strip_task = NULL;    // neopixel strip task tracker
 TaskHandle_t matrix_task = NULL;  // matrix task tracker
-TaskHandle_t ip_display = NULL;  // ip display task tracker
+TaskHandle_t ip_display_task = NULL;  // ip display task tracker
+TaskHandle_t hp_task = NULL;  // heating pad task tracker
 
 volatile SemaphoreHandle_t binsem1;
 volatile int modeNum = 0;
 volatile int strip_mode = 0;  // default to off mode
-volatile int matrix_mode = 0; // default to off mode
+volatile int matrix_mode = 7; // default to off mode
+volatile int hp_mode = 16;     // default to off mode
 byte FrameNumber = 0;     // frame number of matrix animation
 //const char* mode_string = "<p style=\"font-size: 10em\">Arm Lighting Control</a><br>"\
 //                          "<a href=\"/set?value=0\">Off</a><br>"\
@@ -78,7 +83,7 @@ byte FrameNumber = 0;     // frame number of matrix animation
 //              "<a  href=\"/set?value=13\">QBert</a><br>"\
 //              "<a  href=\"/set?value=14\">Dig Dug</a><br>"\
 //              "<a  href=\"/set?value=15\">Color Switch</a><br>";
-const char* mode_string = "<!DOCTYPE html><head><title>Glow Hoodie</title><style>body{background-color: black;}p{text-align: center;font-size: 5em;color: white;}li{display: inline-block;text-align: center;background-color: white;margin: 0px;margin-top: 50px;width: 90%;}li >a{display: block;color: black;font-size: 3em;text-decoration: none;padding: 50px 0px;}</style></head><body><p>Arm Lighting Control</p><ul><li><a href=\"/set?value=0\">Off</a></li><li><a href=\"/set?value=1\">Wipe</a></li><li><a href=\"/set?value=2\">Rainbow</a></li><li><a href=\"/set?value=3\">Color Seg</a></li><li><a href=\"/set?value=4\">Color Bounce</a></li><li><a href=\"/set?value=5\">Wipe Control Wipe</a></li></ul><p>Matrix Lighting Control</p><ul><li><a href=\"/set?value=6\">Off</a></li><li><a href=\"/set?value=7\">Display Time</a></li><li><a href=\"/set?value=8\">Display Temerature</a></li><li><a href=\"/set?value=9\">WreckRalph</a></li><li><a href=\"/set?value=10\">Mario</a></li><li><a href=\"/set?value=11\">Rick Roll</a></li><li><a href=\"/set?value=12\">Bomb Jack</a></li><li><a href=\"/set?value=13\">QBert</a></li><li><a href=\"/set?value=14\">Dig Dug</a></li><li><a href=\"/set?value=15\">Color Switch</a></li></ul></body></html>";
+const char* mode_string = "<!DOCTYPE html><head><title>Glow Hoodie</title><style>body{background-color: black;}p{text-align: center;font-size: 5em;color: white;}li{display: inline-block;text-align: center;background-color: white;margin: 0px;margin-top: 50px;width: 90%;}li >a{display: block;color: black;font-size: 3em;text-decoration: none;padding: 50px 0px;}</style></head><body><p>Arm Lighting Control</p><ul><li><a href=\"/set?value=0\">Off</a></li><li><a href=\"/set?value=1\">Wipe</a></li><li><a href=\"/set?value=2\">Rainbow</a></li><li><a href=\"/set?value=3\">Color Seg</a></li><li><a href=\"/set?value=4\">Color Bounce</a></li><li><a href=\"/set?value=5\">Wipe Control Wipe</a></li></ul><p>Matrix Lighting Control</p><ul><li><a href=\"/set?value=6\">Off</a></li><li><a href=\"/set?value=7\">Display Time</a></li><li><a href=\"/set?value=8\">Display Temerature</a></li><li><a href=\"/set?value=9\">WreckRalph</a></li><li><a href=\"/set?value=10\">Mario</a></li><li><a href=\"/set?value=11\">Rick Roll</a></li><li><a href=\"/set?value=12\">Bomb Jack</a></li><li><a href=\"/set?value=13\">QBert</a></li><li><a href=\"/set?value=14\">Dig Dug</a></li><li><a href=\"/set?value=15\">Color Switch</a></li></ul><p>Heating Pad Control</p><ul><li><a href=\"/set?value=16\">Off</a></li><li><a href=\"/set?value=17\">Auto</a></li><li><a href=\"/set?value=18\">Always On</a></li></ul></body></html>";
 
 Adafruit_SSD1306 lcd(128, 64);
 const char* mdns_name = "glowhoodie"; // mdns doesn't work on Android (mdns_name.local/)
@@ -133,22 +138,35 @@ void on_set() {
       Serial.println(modeNum);
       xSemaphoreGive(binsem1);
     }
-    if (modeNum < SMODE_CNT && strip_mode != modeNum) {
-      if (strip_task != NULL) {     // if the strip is already running
+    if (modeNum < SMODE_CNT && strip_mode != modeNum) {         // change strip display mode
+      if (strip_task != NULL and strip_mode != 0) {     // if the strip is already running
         vTaskDelete( strip_task );
         clear_strip();        // always clear before switching
       }
       strip_mode = modeNum;
-      xTaskCreatePinnedToCore(strip_light, "strip_light", 4096, NULL, 1, &strip_task, ARDUINO_RUNNING_CORE);
-    } // change strip light scheme
-    if (modeNum >= SMODE_CNT && matrix_mode != modeNum) {
-      if (matrix_task != NULL) {     // if the matrix is already running
+      if (strip_mode != 0) {    // don't create thread when the strip is off
+        xTaskCreatePinnedToCore(strip_light, "strip_light", 4096, NULL, 1, &strip_task, ARDUINO_RUNNING_CORE);
+      }
+    } else if (modeNum < SMODE_CNT+MMODE_CNT && matrix_mode != modeNum) {  // change matrix display mode
+      if (matrix_task != NULL && matrix_mode != SMODE_CNT) {     // if the matrix is already running
         vTaskDelete( matrix_task );
         clear_matrix();       // always clear before switching
       }
       matrix_mode = modeNum;
-      xTaskCreatePinnedToCore(matrix_animation, "matrix_animation", 4096, NULL, 1, &matrix_task, ARDUINO_RUNNING_CORE);
-    } // change matrix animation
+      if (matrix_mode != SMODE_CNT) { // don't create thread when the matrix is off
+        xTaskCreatePinnedToCore(matrix_animation, "matrix_animation", 4096, NULL, 1, &matrix_task, ARDUINO_RUNNING_CORE);
+      }
+    } else if (hp_mode != modeNum) {                                  // change heating pad mode (modeNum >= SMODE_CNT+NMODE_CNT)
+      if (hp_task != NULL && hp_mode != SMODE_CNT+MMODE_CNT) {        // if the matrix is already running
+        vTaskDelete( hp_task );
+        digitalWrite(HP_PIN, LOW);  // always turn off heating pad before switching
+        delay(100);                 // some delay for safety
+      }
+      hp_mode = modeNum;
+      if (hp_mode != SMODE_CNT+MMODE_CNT) { // don't create thread when the heating pad is off
+        xTaskCreatePinnedToCore(heatingpad, "heating pad", 4096, NULL, 1, &hp_task, 0);  // only task (other than loop() that's pinned to core 0)
+      }
+    }
     server.send(200, "text/html", mode_string);
   } else {
     server.send(200, "text/html", strcat("<p>Error: No value found.</p><br>", mode_string));
@@ -163,6 +181,8 @@ void setup(void) {
   pinMode(TRIG, OUTPUT); // set up distance sensor pins
   pinMode(ECHO, INPUT);
   digitalWrite(TRIG, LOW);
+  pinMode(HP_PIN, OUTPUT);
+  digitalWrite(HP_PIN, LOW); // turn off heating pad first (default)
 
   WiFi.mode(WIFI_STA); // set ESP in AP mode
   WiFi.begin("george", "12345678"); // sets ssid and password
@@ -175,12 +195,12 @@ void setup(void) {
   int n = ip_string.length();
   char ip_char_arr[n + 1];
   strcpy(ip_char_arr, ip_string.c_str());
-  xTaskCreatePinnedToCore(matrix_display_ip, "matrix display ip", 4096, &ip_char_arr, 1, &ip_display, ARDUINO_RUNNING_CORE);
+  xTaskCreatePinnedToCore(matrix_display_ip, "matrix display ip", 4096, &ip_char_arr, 1, &ip_display_task, ARDUINO_RUNNING_CORE);
 
   lcd.setCursor(0,30); lcd.println("Register mDNS..."); lcd.display();
   if (MDNS.begin(mdns_name)) {  // register mDNS name
     lcd.println("success."); lcd.print(mdns_name); lcd.print(".local/"); lcd.display();
-    vTaskDelete( ip_display ); clear_matrix();
+    vTaskDelete( ip_display_task ); clear_matrix();
   } else { lcd.print("failed."); lcd.display(); }
 
   server.on("/", on_home);  // home callback function
@@ -593,7 +613,7 @@ String getTime(){
   return current_time;
 }
 
-void time() {
+void matrix_time() {
   String current_time = getTime();
   int len = current_time.length() + 1;
   char curr_time[len]; 
@@ -625,8 +645,8 @@ void matrix_display_ip(void *pvParameters) {
 
 void matrix_animation(void *pvParameters) {
   while (1) {
-    if (matrix_mode == 7) {
-      time();
+    if(matrix_mode == 7) {
+      matrix_time();
     } else if (matrix_mode == 8) {
       temperature();
     } else if (matrix_mode == 9) {
@@ -643,6 +663,33 @@ void matrix_animation(void *pvParameters) {
       digdug();
     }else if (matrix_mode == 15) {
       colorswitchmatrix();
+    }
+  }
+}
+
+void heatingpad_auto() {
+  String temperature = getTemperature();
+  long temp = temperature.toInt();
+  Serial.println(temp);
+  if (temp < LOW_TEMP_THRESHOLD) {
+    for (int i=0; i<15; i++) {  // 15 cycles (30 minutes)
+      digitalWrite(HP_PIN, HIGH);
+      delay(60 * 1000);      // turn on heating pad for 1 minute
+      digitalWrite(HP_PIN, LOW);
+      delay(60 * 1000);      // turn off heating pad for 1 minute
+    }
+  }
+}
+
+void heatingpad(void * parameters) {
+  while(1) {
+    if (hp_mode == 17){
+      heatingpad_auto();
+    } else if (hp_mode == 18) {   // heating pad on mode
+      digitalWrite(HP_PIN, HIGH);
+      delay(60 * 1000);      // turn on heating pad for 1 minute
+      digitalWrite(HP_PIN, LOW);
+      delay(60 * 1000);      // turn off heating pad for 1 minute
     }
   }
 }
