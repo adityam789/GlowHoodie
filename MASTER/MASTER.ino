@@ -82,7 +82,6 @@ const char* mode_string = "<!DOCTYPE html><head><title>Glow Hoodie</title><style
 
 Adafruit_SSD1306 lcd(128, 64);
 const char* mdns_name = "glowhoodie"; // mdns doesn't work on Android (mdns_name.local/)
-char* ip_string = NULL;
 
 // Struct Declaration
 struct RGB {
@@ -101,6 +100,27 @@ struct RGB colorConverter(int hexValue)
 }
 
 
+// ------------------------ clear functions ------------------------------------
+void clear_matrix() {
+  for (byte y=0; y<16; y++) {
+    for(byte x=0; x<16; x++) {
+      matrix.drawPixel(x, y, matrix.Color(0, 0, 0));
+    }
+  }
+  matrix.show();
+  delay(100);
+}
+
+void clear_strip() {
+  for (int i = 0; i < strip.numPixels(); i++) { // For each pixel in strip...
+    strip.setPixelColor(i, strip.Color(0, 0, 0));  //  Set pixel's color (in RAM)
+  }
+  strip.show();                          //  Update strip to match
+  delay(10);                           //  Pause for a moment
+}
+
+
+// ---------------------------- web server ----------------------------------------
 void on_home() {
   server.send(200, "text/html", mode_string);
 }
@@ -151,15 +171,16 @@ void setup(void) {
   lcd.clearDisplay(); lcd.setCursor(0,0); lcd.print("Connected.\nIP:");
   lcd.println(WiFi.localIP()); lcd.display(); // print out assigned IP address
   
-//  String ps_ip_string = ipToString(WiFi.localIP());
-//  ps_ip_string.toCharArray(ip_string, ps_ip_string.length());
-//  Serial.println(ip_string);  // test printing ip address
-//  xTaskCreatePinnedToCore(matrix_display_ip, "matrix display ip", 4096, NULL, 1, &ip_display, ARDUINO_RUNNING_CORE);
+  String ip_string = ipToString(WiFi.localIP());
+  int n = ip_string.length();
+  char ip_char_arr[n + 1];
+  strcpy(ip_char_arr, ip_string.c_str());
+  xTaskCreatePinnedToCore(matrix_display_ip, "matrix display ip", 4096, &ip_char_arr, 1, &ip_display, ARDUINO_RUNNING_CORE);
 
   lcd.setCursor(0,30); lcd.println("Register mDNS..."); lcd.display();
   if (MDNS.begin(mdns_name)) {  // register mDNS name
     lcd.println("success."); lcd.print(mdns_name); lcd.print(".local/"); lcd.display();
-//    vTaskDelete( matrix_task ); clear_matrix();
+    vTaskDelete( ip_display ); clear_matrix();
   } else { lcd.print("failed."); lcd.display(); }
 
   server.on("/", on_home);  // home callback function
@@ -184,25 +205,6 @@ void setup(void) {
     Serial.println("binsem1 created sucessfully");
   }
   xSemaphoreGive(binsem1);
-}
-
-// ------------------------ clear functions ------------------------------------
-void clear_matrix() {
-  for (byte y=0; y<16; y++) {
-    for(byte x=0; x<16; x++) {
-      matrix.drawPixel(x, y, matrix.Color(0, 0, 0));
-    }
-  }
-  matrix.show();
-  delay(100);
-}
-
-void clear_strip() {
-  for (int i = 0; i < strip.numPixels(); i++) { // For each pixel in strip...
-    strip.setPixelColor(i, strip.Color(0, 0, 0));  //  Set pixel's color (in RAM)
-  }
-  strip.show();                          //  Update strip to match
-  delay(10);                           //  Pause for a moment
 }
 
 //led strip
@@ -460,7 +462,7 @@ void TimerEventRalph() {
   } else {
       FrameNumber++;
   }
-  Serial.println("Frame completed");
+//  Serial.println("Frame completed");
   matrix.show();
 }
 
@@ -476,7 +478,7 @@ void TimerEventMario() {
   } else {
     FrameNumber++;
   }
-  Serial.println("Frame completed");
+//  Serial.println("Frame completed");
   matrix.show();
 }
 
@@ -493,7 +495,7 @@ void TimerEventRickRoll() {
   else{
     FrameNumber += 1;  
   }
-  Serial.println(" Frame completed");
+//  Serial.println(" Frame completed");
   matrix.show();
 }
 
@@ -504,13 +506,13 @@ void TimerEventRetro(int character_id){
           if (i % 2 == 0) {
               struct RGB c = colorConverter(pgm_read_dword(&(retros[2 * character_id + FrameNumber][16 * i + 15 - j])));
               uint16_t c_u = matrix.Color(c.r, c.g, c.b);
-              Serial.println(c.r);
+//              Serial.println(c.r);
               matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
           }   
           else {
               struct RGB c = colorConverter(pgm_read_dword(&(retros[2 * character_id + FrameNumber][16 * i + j])));
               uint16_t c_u = matrix.Color(c.r, c.g, c.b);
-              Serial.println(c.r);
+//              Serial.println(c.r);
               matrix.drawPixel(j, i, matrix.Color(c.r, c.g, c.b));
           }
       }
@@ -532,7 +534,7 @@ void TimerEventColorSwitch() {
   } else {
     FrameNumber++;
   }
-  Serial.println("Frame completed");
+//  Serial.println("Frame completed");
   matrix.show();
 }
 
@@ -555,11 +557,11 @@ String getTemperature(){
       }
       temp += 1;
     }
-    Serial.println(temperature);
+//    Serial.println(temperature);
     unsigned long temperature_in_int = temperature.toInt();
-    if(temperature_in_int > 25){\
-      Serial.println("Lets go!!");
-    }
+//    if(temperature_in_int > 25){
+//      Serial.println("Lets go!!");
+//    }
   }
   http.end();
   return temperature;
@@ -585,7 +587,7 @@ String getTime(){
       }
       temp += 1;
     }
-    Serial.println(current_time);
+//    Serial.println(current_time);
   }
   http2.end();  
   return current_time;
@@ -617,7 +619,8 @@ String ipToString(IPAddress ip){
 }
 
 void matrix_display_ip(void *pvParameters) {
-  display_text(ip_string, 4);
+  display_text((char*)pvParameters, 4);
+//  Serial.println((char*)pvParameters);
 }
 
 void matrix_animation(void *pvParameters) {
